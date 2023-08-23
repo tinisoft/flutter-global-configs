@@ -13,6 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   gato: ^0.0.5
+  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_test:

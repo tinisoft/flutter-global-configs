@@ -1,9 +1,12 @@
 library global_configs;
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:gato/gato.dart' as gato;
+import 'package:path_provider/path_provider.dart';
 
 /// A singleton class to set and get global configs.
 ///
@@ -43,9 +46,27 @@ class GlobalConfigs {
   /// await GlobalConfigs().loadJsonFromDir(dir, 'assets/cofig.json');
   /// ```
   Future<GlobalConfigs> loadJsonFromdir(String dir, {String? path}) async {
+    var appSupportDir = await getApplicationSupportDirectory();
+
+    final File configFile = File(appSupportDir.path + "/config.json");
+
+    if (await configFile.exists()) {
+      String content = await configFile.readAsString();
+      Map<String, dynamic> res = json.decode(content);
+      debugPrint("$res");
+      configs.addAll(res);
+      return _singleton;
+    }
+
     String content = await rootBundle.loadString(dir);
     Map<String, dynamic> res = json.decode(content);
+    debugPrint("$res");
     path == null ? configs.addAll(res) : set(path, res);
+
+    set("syncWithDrive.due", DateTime.now().add(Duration(days: 7)).toString());
+    set("syncWithDrive.frequency", 7);
+    set("syncWithDrive.lastSync", DateTime.now().toString());
+    await configFile.writeAsString(getPrettyJSONString(res));
 
     return _singleton;
   }
@@ -79,8 +100,17 @@ class GlobalConfigs {
   /// GlobalConfigs().set('a', 3); // { 'a': 3, 'b': {'c': 2}}
   /// GlobalConfigs().set('b.d', 4); // { 'a': 3, 'b': {'c': 2, 'd': 4}}
   /// ```dart
-  void set<T>(String path, T value) =>
-      configs = gato.set<T>(configs, path, value);
+  Future<void> set<T>(String path, T value) async {
+    configs = gato.set<T>(configs, path, value);
+
+    var appSupportDir = await getApplicationSupportDirectory();
+
+    final File configFile = File(appSupportDir.path + "/config.json");
+
+    await configFile.writeAsString(jsonEncode(configs));
+
+    debugPrint("$configs");
+  }
 
   /// Removes data to the configs
   ///
@@ -96,4 +126,9 @@ class GlobalConfigs {
 
   /// Clear the current configs
   void clear() => configs.clear();
+
+  String getPrettyJSONString(jsonObject) {
+    var encoder = const JsonEncoder.withIndent("     ");
+    return encoder.convert(jsonObject);
+  }
 }
