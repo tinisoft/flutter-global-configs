@@ -50,6 +50,8 @@ class GlobalConfigs {
 
     final File configFile = File(appSupportDir.path + "/config.json");
 
+    debugPrint("support dir path ====${appSupportDir.path}");
+
     if (await configFile.exists()) {
       String content = await configFile.readAsString();
       Map<String, dynamic> res = json.decode(content);
@@ -66,7 +68,7 @@ class GlobalConfigs {
     set("syncWithDrive.due", DateTime.now().add(Duration(days: 7)).toString());
     set("syncWithDrive.frequency", 7);
     set("syncWithDrive.lastSync", DateTime.now().toString());
-    await configFile.writeAsString(getPrettyJSONString(res));
+    await configFile.writeAsString(json.encode(res));
 
     return _singleton;
   }
@@ -126,9 +128,4 @@ class GlobalConfigs {
 
   /// Clear the current configs
   void clear() => configs.clear();
-
-  String getPrettyJSONString(jsonObject) {
-    var encoder = const JsonEncoder.withIndent("     ");
-    return encoder.convert(jsonObject);
-  }
 }
