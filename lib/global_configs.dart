@@ -46,30 +46,29 @@ class GlobalConfigs {
   /// await GlobalConfigs().loadJsonFromDir(dir, 'assets/cofig.json');
   /// ```
   Future<GlobalConfigs> loadJsonFromdir(String dir, {String? path}) async {
-    var appSupportDir = await getApplicationSupportDirectory();
-
-    final File configFile = File(appSupportDir.path + "/config.json");
-
-    debugPrint("support dir path ====${appSupportDir.path}");
-
-    if (await configFile.exists()) {
-      String content = await configFile.readAsString();
-      Map<String, dynamic> res = json.decode(content);
-      debugPrint("$res");
-      configs.addAll(res);
-      return _singleton;
-    }
-
+    // Load default configuration from assets folder first.
     String content = await rootBundle.loadString(dir);
     Map<String, dynamic> res = json.decode(content);
-    debugPrint("$res");
+    // debugPrint("$res");
     path == null ? configs.addAll(res) : set(path, res);
-
     set("syncWithDrive.due", DateTime.now().add(Duration(days: 7)).toString());
     set("syncWithDrive.frequency", 7);
     set("syncWithDrive.lastSync", DateTime.now().toString());
-    await configFile.writeAsString(json.encode(res));
 
+    var appSupportDir = await getApplicationSupportDirectory();
+    final File configFile = File(appSupportDir.path + "/config.json");
+    debugPrint("support dir path ====${appSupportDir.path}");
+    // Now reads existing support directory configuration, overrides default
+    // values.
+    if (await configFile.exists()) {
+      String content = await configFile.readAsString();
+      Map<String, dynamic> res = json.decode(content);
+      // debugPrint("$res");
+      configs.addAll(res);
+    }
+    // Write full json configuration back, this takes extra dist write
+    // every time app opens up
+    await configFile.writeAsString(json.encode(res));
     return _singleton;
   }
 
